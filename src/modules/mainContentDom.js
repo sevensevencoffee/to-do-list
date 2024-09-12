@@ -1,6 +1,6 @@
 import { Todo } from "./todo";
 import { Project } from "./projects";
-import { displayTodos, displayProjects, initializeFilters } from "./tododisplay";
+import { displayTodos, displayProjects } from "./tododisplay";
 
 export class mainContentDom {
     constructor() {
@@ -29,9 +29,12 @@ export class mainContentDom {
             this.initializeWelcomeProject();
         }
         this.initializeEventListeners();
+        this.initializeFilters();
         this.updateProjects();
         this.initializeProjectDialog();
-        initializeFilters(this.projects, this.displayFilteredTodos.bind(this));
+
+        // Display all todos when the application loads or refreshes
+        this.showAllTodos();
     }
 
     initializeWelcomeProject() {
@@ -103,18 +106,44 @@ export class mainContentDom {
     }
 
     initializeFilters() {
-        const filtersContainer = document.createElement('div');
-        filtersContainer.id = 'filters';
+        const filtersContainer = document.querySelector('#filters');
         filtersContainer.innerHTML = `
-            <button id="showAllTodos">Show all to dos</button>
-            <button id="showDueToday">Due today</button>
+            <div class="filter-item" id="showAllTodos">
+                <span>All</span>
+                <span class="todo-count" id="allTodosCount">0</span>
+            </div>
+            <div class="filter-item" id="showDueToday">
+                <span>Today</span>
+                <span class="todo-count" id="dueTodayCount">0</span>
+            </div>
+            <div class="filter-item" id="showCompleted">
+                <span>Completed</span>
+                <span class="todo-count" id="completedCount">0</span>
+            </div>
         `;
         
-        const sideBar = document.querySelector('.sideBar');
-        sideBar.insertBefore(filtersContainer, document.getElementById('projects'));
-
         document.getElementById('showAllTodos').addEventListener('click', () => this.showAllTodos());
         document.getElementById('showDueToday').addEventListener('click', () => this.showDueToday());
+        document.getElementById('showCompleted').addEventListener('click', () => this.showCompleted());
+
+        this.updateFilterCounts();
+    }
+
+    updateFilterCounts() {
+        const allTodosCount = this.projects.reduce((sum, project) => sum + project.getTodos().length, 0);
+        const today = new Date().toISOString().split('T')[0];
+        const dueTodayCount = this.projects.reduce((sum, project) => 
+            sum + project.getTodos().filter(todo => todo.dueDate === today).length, 0);
+        const completedCount = this.projects.reduce((sum, project) => 
+            sum + project.getTodos().filter(todo => todo.completed).length, 0);
+
+        const allTodosElement = document.getElementById('allTodosCount');
+        const dueTodayElement = document.getElementById('dueTodayCount');
+        const completedElement = document.getElementById('completedCount');
+
+        if (allTodosElement) allTodosElement.textContent = allTodosCount;
+        if (dueTodayElement) dueTodayElement.textContent = dueTodayCount;
+        if (completedElement) completedElement.textContent = completedCount;
     }
 
     showAllTodos() {
@@ -161,26 +190,58 @@ export class mainContentDom {
     }
 
     displayFilteredTodos(todos, title) {
+        const container = document.querySelector(".mainContainer");
+        container.innerHTML = `<h2 class="project-title">${title}</h2>`;
+        
+        // Display todos first
         displayTodos(
             todos,
             title,
             null,
-            null,
-            null,
+            (index) => {
+                const [project, todoIndex] = this.findTodoProjectAndIndex(todos[index]);
+                if (project) {
+                    this.editTodo(todoIndex, project);
+                }
+            },
+            (index) => {
+                const [project, todoIndex] = this.findTodoProjectAndIndex(todos[index]);
+                if (project) {
+                    this.deleteTodo(todoIndex, project);
+                }
+            },
             (index) => {
                 const [project, todoIndex] = this.findTodoProjectAndIndex(todos[index]);
                 if (project) {
                     this.toggleTodoCompleted(todoIndex, project);
                 }
             },
-            title === 'Completed Tasks' 
+            title === 'Completed Tasks'
         );
+
+        // Then add the "Add a new task" button
+        if (this.addTodoBtn) {
+            container.appendChild(this.addTodoBtn);
+        } else {
+            const addTaskBtn = document.createElement('button');
+            addTaskBtn.id = 'askForInput';
+            addTaskBtn.textContent = '+ Add a new task';
+            addTaskBtn.addEventListener('click', () => this.showInputForm());
+            container.appendChild(addTaskBtn);
+            this.addTodoBtn = addTaskBtn;
+        }
+
+        // Finally, add the input container
+        if (this.inputContainer) {
+            container.appendChild(this.inputContainer);
+        }
     }
 
     addProject(name) {
         const newProject = new Project(name);
         this.projects.push(newProject);
         this.updateProjects();
+        this.updateFilterCounts();
         this.saveToLocalStorage();
     }
 
@@ -202,7 +263,8 @@ export class mainContentDom {
         this.priorityInput.value = "";
     }
 
-    handleFormSubmit() {
+    handleFormSubmit(e) {
+        e.preventDefault();
         if (!this.currentProject) {
             alert("Please select a project first.");
             return;
@@ -225,16 +287,18 @@ export class mainContentDom {
 
         this.hideInputForm();
         this.updateToDos();
+        this.updateFilterCounts();
         this.saveToLocalStorage();
     }
 
-    editTodo(index) {
-        const todo = this.currentProject.getTodos()[index];
+    editTodo(index, project) {
+        const todo = project.getTodos()[index];
         this.titleInput.value = todo.title;
         this.dueDateInput.value = todo.dueDate;
         this.priorityInput.value = todo.priority;
 
         this.editIndex = index;
+        this.currentProject = project;
         this.showInputForm(true);
         this.saveToLocalStorage();
     }
@@ -254,12 +318,13 @@ export class mainContentDom {
         }
     }
 
-    deleteTodo(index) {
-        if (this.currentProject && index >= 0 && index < this.currentProject.getTodos().length) {
-            const deletedTodo = this.currentProject.getTodos()[index];
-            this.currentProject.deleteTodo(index);
+    deleteTodo(index, project) {
+        if (project && index >= 0 && index < project.getTodos().length) {
+            const deletedTodo = project.getTodos()[index];
+            project.deleteTodo(index);
             this.updateToDos();
-            this.removeTodoFromLocalStorage(this.currentProject.name, deletedTodo.title);
+            this.updateFilterCounts();
+            this.removeTodoFromLocalStorage(project.name, deletedTodo.title);
             this.saveToLocalStorage();
         }
     }
@@ -289,31 +354,41 @@ export class mainContentDom {
             (project) => this.selectProject(project),
             (index) => this.deleteProject(index)
         );
+        this.updateFilterCounts();
     }
 
     updateToDos() {
         const container = document.querySelector(".mainContainer");
-        container.innerHTML = ""; 
-
         if (this.currentProject) {
             try {
-                const addTodoBtn = document.createElement("button");
-                addTodoBtn.id = "askForInput";
-                addTodoBtn.textContent = "+ Add a new task";
-                addTodoBtn.addEventListener('click', () => this.showInputForm());
-                container.appendChild(addTodoBtn);
+                container.innerHTML = `<h2 class="project-title">${this.currentProject.name}</h2>`;
 
-                container.appendChild(this.inputContainer);
-
+                // Display todos first
                 displayTodos(
                     this.currentProject.getTodos(),
                     this.currentProject.name,
-                    this.currentProject,
-                    (index) => this.editTodo(index),
-                    (index) => this.deleteTodo(index),
-                    (index) => this.toggleTodoCompleted(index),
+                    (index) => this.editTodo(index, this.currentProject),
+                    (index) => this.deleteTodo(index, this.currentProject),
+                    (index) => this.toggleTodoCompleted(index, this.currentProject),
                     false 
                 );
+
+                // Then add the "Add a new task" button
+                if (this.addTodoBtn) {
+                    container.appendChild(this.addTodoBtn);
+                } else {
+                    const addTaskBtn = document.createElement('button');
+                    addTaskBtn.id = 'askForInput';
+                    addTaskBtn.textContent = '+ Add a new task';
+                    addTaskBtn.addEventListener('click', () => this.showInputForm());
+                    container.appendChild(addTaskBtn);
+                    this.addTodoBtn = addTaskBtn;
+                }
+
+                // Finally, add the input container
+                if (this.inputContainer) {
+                    container.appendChild(this.inputContainer);
+                }
             } catch (error) {
                 console.error("Error in displayTodos:", error);
                 container.innerHTML += "<p>Error displaying todos. Please try again.</p>";
@@ -323,11 +398,12 @@ export class mainContentDom {
         }
     }
 
-    toggleTodoCompleted(index) {
-        const todo = this.currentProject.getTodos()[index];
+    toggleTodoCompleted(index, project) {
+        const todo = project.getTodos()[index];
         todo.completed = !todo.completed;
-        this.currentProject.updateTodo(index, todo);
+        project.updateTodo(index, todo);
         this.updateToDos();
+        this.updateFilterCounts();
         this.saveToLocalStorage();
     }
 

@@ -7,10 +7,26 @@ export function displayProjects(projects, selectProjectCallback, deleteProjectCa
         const projectElement = document.createElement("div");
         projectElement.classList.add("project-item");
         
+        const projectInfo = document.createElement("div");
+        projectInfo.style.display = "flex";
+        projectInfo.style.alignItems = "center";
+        projectInfo.style.flexGrow = "1";
+
         const projectName = document.createElement("span");
-        projectName.textContent = project.name;
+        projectName.textContent = `#\u00A0\u00A0${project.name}`;
         projectName.addEventListener("click", () => selectProjectCallback(project));
         
+        projectInfo.appendChild(projectName);
+        projectElement.appendChild(projectInfo);
+
+        const rightSection = document.createElement("div");
+        rightSection.style.display = "flex";
+        rightSection.style.alignItems = "center";
+
+        const todoCount = document.createElement("span");
+        todoCount.textContent = project.getTodos().length;
+        todoCount.classList.add("todo-count");
+
         const deleteBtn = document.createElement("button");
         deleteBtn.textContent = "×"; 
         deleteBtn.classList.add("delete-project-btn");
@@ -19,8 +35,10 @@ export function displayProjects(projects, selectProjectCallback, deleteProjectCa
             deleteProjectCallback(index);
         });
 
-        projectElement.appendChild(projectName);
-        projectElement.appendChild(deleteBtn);
+        rightSection.appendChild(todoCount);
+        rightSection.appendChild(deleteBtn);
+        projectElement.appendChild(rightSection);
+
         projectsContainer.appendChild(projectElement);
     });
 }
@@ -31,14 +49,7 @@ export function displayTodos(todos, title, project, editTodoCallback, deleteTodo
     const existingList = container.querySelector('.todo-list');
     if (existingList) existingList.remove();
 
-    // Update or create title
-    let headerTitle = container.querySelector('.project-title');
-    if (!headerTitle) {
-        headerTitle = document.createElement("h2");
-        headerTitle.classList.add("project-title");
-        container.appendChild(headerTitle);
-    }
-    headerTitle.textContent = title;
+    // Remove the title creation from here, as it will be handled by the calling function
 
     // Create the todo list
     const todoList = document.createElement("ul");
@@ -60,7 +71,6 @@ export function displayTodos(todos, title, project, editTodoCallback, deleteTodo
                 <div class="todo-details">
                     <span class="todo-due-date">${todo.dueDate ? new Date(todo.dueDate).toLocaleDateString() : 'No due date'}</span>
                     <span class="todo-priority">Priority: ${todo.priority}</span>
-                    <span class="todo-project">Project: ${todo.project}</span>
                 </div>
             </div>
             <div class="todo-actions">
@@ -103,14 +113,37 @@ export function displayTodos(todos, title, project, editTodoCallback, deleteTodo
 export function initializeFilters(projects, displayTodosCallback) {
     const filtersContainer = document.querySelector('#filters');
     filtersContainer.innerHTML = `
-        <button id="showAllTodos">Show all to dos</button>
-        <button id="showDueToday">Due today</button>
-        <button id="showCompleted">Show completed</button>
+        <div class="filter-item">
+            <span>Show all to dos</span>
+            <span class="todo-count">${projects.reduce((sum, project) => sum + project.getTodos().length, 0)}</span>
+        </div>
+        <div class="filter-item">
+            <span>Due today</span>
+            <span class="todo-count" id="dueTodayCount">0</span>
+        </div>
+        <div class="filter-item">
+            <span>Show completed</span>
+            <span class="todo-count" id="completedCount">0</span>
+        </div>
     `;
     
-    document.getElementById('showAllTodos').addEventListener('click', () => showAllTodos(projects, displayTodosCallback));
-    document.getElementById('showDueToday').addEventListener('click', () => showDueToday(projects, displayTodosCallback));
-    document.getElementById('showCompleted').addEventListener('click', () => showCompleted(projects, displayTodosCallback));
+    const filterItems = filtersContainer.querySelectorAll('.filter-item');
+    filterItems[0].addEventListener('click', () => showAllTodos(projects, displayTodosCallback));
+    filterItems[1].addEventListener('click', () => showDueToday(projects, displayTodosCallback));
+    filterItems[2].addEventListener('click', () => showCompleted(projects, displayTodosCallback));
+
+    updateFilterCounts(projects);
+}
+
+function updateFilterCounts(projects) {
+    const today = new Date().toISOString().split('T')[0];
+    const dueTodayCount = projects.reduce((sum, project) => 
+        sum + project.getTodos().filter(todo => todo.dueDate === today).length, 0);
+    const completedCount = projects.reduce((sum, project) => 
+        sum + project.getTodos().filter(todo => todo.completed).length, 0);
+
+    document.getElementById('dueTodayCount').textContent = dueTodayCount;
+    document.getElementById('completedCount').textContent = completedCount;
 }
 
 function showAllTodos(projects, displayTodosCallback) {
