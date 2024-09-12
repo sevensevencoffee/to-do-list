@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To Do List</title>
+</head>
+<body>
+    <div class="sideBar"> 
+       <div id="filters"></div>
+        
+        <span class="addProjectSec">
+            <h2 class="sideBarHeader">My Project</h2>
+            <button id="addProjectBtn">+</button>
+        </span> 
+        <div id="projects">
+            <!-- Projects will be displayed here -->
+        </div>
+    </div>
+    <div class="mainContainer">
+        <button id="askForInput">+ Add a new task</button>
+        <div id="inputContainer" style="display: none;">
+            <form id="toDoForm">
+                <div class="form-group full-width">
+                    <label for="title">Task</label>
+                    <input type="text" name="title" id="title">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dueDate">Due Date</label>
+                        <input type="date" name="dueDate" id="dueDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="priority">Priority</label>
+                        <select name="priority" id="priority">
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-buttons">
+                    <button type="submit" id="confirmBtn" class="formButton">Confirm</button>
+                    <button type="button" id="cancelBtn" class="formButton">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <dialog id="projectDialog">
+        <form id="projectForm">
+            <label for="projectName">Project Name:</label>
+            <input type="text" id="projectName" required>
+            <button type="submit">Add Project</button>
+            <button type="button" id="cancelProjectBtn">Cancel</button>
+        </form>
+    </dialog>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const projectInput = document.getElementById('projectInput');
+            if (projectInput) {
+                console.log("Project input field found in HTML");
+                projectInput.addEventListener('input', () => {
+                    console.log("Project input value changed:", projectInput.value);
+                });
+            } else {
+                console.error("Project input field not found in HTML");
+            }
+        });
+    </script>
+</body>
+</html>
