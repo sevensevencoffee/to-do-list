@@ -7,7 +7,20 @@
 <script defer src="main.js"></script></head>
 <body>
     <div class="sideBar"> 
-       <div id="filters"></div>
+       <div id="filters">
+        <div class="filter-item" id="showAllTodos">
+            <span><img src="41948a7e6db46ef55030.svg" alt="All"/>All</span>
+            <span class="todo-count" id="allTodosCount">0</span>
+        </div>
+        <div class="filter-item" id="showDueToday">
+            <span><img src="bab70fbac3124f8787aa.svg" alt="Today"/>Today</span>
+            <span class="todo-count" id="dueTodayCount">0</span>
+        </div>
+        <div class="filter-item" id="showCompleted">
+            <span><img src="812f18d17d91f84ef80c.svg" alt="Completed"/>Completed</span>
+            <span class="todo-count" id="completedCount">0</span>
+        </div>
+       </div>
         
         <span class="addProjectSec">
             <h2 class="sideBarHeader">My Project</h2>
