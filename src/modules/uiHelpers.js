@@ -1,11 +1,13 @@
 export function displayProjects(projects, selectProjectCallback, deleteProjectCallback) {
     const projectsContainer = document.querySelector("#projects");
-
-    projectsContainer.innerHTML = '';
+    
+    // Create a document fragment to improve performance
+    const fragment = document.createDocumentFragment();
 
     projects.forEach((project, index) => {
         const projectElement = document.createElement("div");
         projectElement.classList.add("project-item");
+        projectElement.setAttribute('data-project', project.name);
         
         const projectInfo = document.createElement("div");
         projectInfo.style.display = "flex";
@@ -14,7 +16,10 @@ export function displayProjects(projects, selectProjectCallback, deleteProjectCa
 
         const projectName = document.createElement("span");
         projectName.textContent = `#\u00A0\u00A0${project.name}`;
-        projectName.addEventListener("click", () => selectProjectCallback(project));
+        projectName.addEventListener("click", () => {
+            console.log("Project clicked:", project.name);
+            selectProjectCallback(project);
+        });
         
         projectInfo.appendChild(projectName);
         projectElement.appendChild(projectInfo);
@@ -24,7 +29,7 @@ export function displayProjects(projects, selectProjectCallback, deleteProjectCa
         rightSection.style.alignItems = "center";
 
         const todoCount = document.createElement("span");
-        todoCount.textContent = project.getTodos().length;
+        todoCount.textContent = project.getTodos().filter(todo => !todo.completed).length;
         todoCount.classList.add("todo-count");
 
         const deleteBtn = document.createElement("button");
@@ -39,17 +44,19 @@ export function displayProjects(projects, selectProjectCallback, deleteProjectCa
         rightSection.appendChild(deleteBtn);
         projectElement.appendChild(rightSection);
 
-        projectsContainer.appendChild(projectElement);
+        fragment.appendChild(projectElement);
     });
+
+    // Clear existing content and append the fragment
+    projectsContainer.innerHTML = '';
+    projectsContainer.appendChild(fragment);
 }
 
-export function displayTodos(todos, title, project, editTodoCallback, deleteTodoCallback, toggleCompletedCallback, isCompletedFilter = false) {
+export function displayTodos(todos, title, editTodoCallback, deleteTodoCallback, toggleCompletedCallback, isCompletedFilter = false) {
     const container = document.querySelector(".mainContainer");
     
     const existingList = container.querySelector('.todo-list');
     if (existingList) existingList.remove();
-
-    // Remove the title creation from here, as it will be handled by the calling function
 
     // Create the todo list
     const todoList = document.createElement("ul");
@@ -93,16 +100,15 @@ export function displayTodos(todos, title, project, editTodoCallback, deleteTodo
 
         // Add event listener for the checkbox
         const checkbox = todoItem.querySelector('.todo-checkbox');
-        checkbox.addEventListener('change', () => {
-            if (toggleCompletedCallback) {
+        if (toggleCompletedCallback) {
+            checkbox.addEventListener('change', () => {
                 toggleCompletedCallback(index);
-                if (!isCompletedFilter) {
-                    todoItem.remove(); // Remove the item from the display
-                } else {
-                    todoItem.querySelector('.todo-title').classList.toggle('completed', todo.completed);
+                todoItem.querySelector('.todo-title').classList.toggle('completed', todo.completed);
+                if (!isCompletedFilter && todo.completed) {
+                    todoItem.remove(); // Remove the item from the display if it's completed and not in the Completed filter
                 }
-            }
-        });
+            });
+        }
 
         todoList.appendChild(todoItem);
     });

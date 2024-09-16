@@ -7,7 +7,20 @@
 </head>
 <body>
     <div class="sideBar"> 
-       <div id="filters"></div>
+       <div id="filters">
+        <div class="filter-item" id="showAllTodos">
+            <span><img src="/src/img/List.svg" alt="All"/>All</span>
+            <span class="todo-count" id="allTodosCount">0</span>
+        </div>
+        <div class="filter-item" id="showDueToday">
+            <span><img src="/src/img/Calendar.svg" alt="Today"/>Today</span>
+            <span class="todo-count" id="dueTodayCount">0</span>
+        </div>
+        <div class="filter-item" id="showCompleted">
+            <span><img src="/src/img/check-square.svg" alt="Completed"/>Completed</span>
+            <span class="todo-count" id="completedCount">0</span>
+        </div>
+       </div>
         
         <span class="addProjectSec">
             <h2 class="sideBarHeader">My Project</h2>

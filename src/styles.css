@@ -188,7 +188,7 @@ body {
 }
 
 .todo-description {
-    color: #666;
+    color: #000000;
 }
 
 .todo-details {
@@ -247,7 +247,8 @@ body {
 }
 
 #projectForm {
-    width: 200px;
+    width: 250px;
+    padding-right: 15px;
     margin-bottom: 10px;
     display: flex;
     flex-direction: column;
@@ -305,14 +306,15 @@ body {
 }
 
 #addProjectBtn {
-    background-color: #ffffff;
+    padding: 0px;
+    border-radius: 10px;
     font-size: 20px;
-    color: #FF5C00;
+    color: #000000;
+    margin-left: 30px;
 }
 
 #addProjectBtn:hover {
-    background-color: #FF5C00;
-    color: white;
+    color: #FF5C00;
 }
 
 #projectDialog {
@@ -377,14 +379,16 @@ button {
 }
 
 button:hover {
-    color: #45a049; 
+    color: #d85001; 
 }
 
 .addProjectSec {
+    margin-top: 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1px;
+    margin-right: 3px;
 }
 
 /* Project form button styles */
@@ -393,7 +397,7 @@ button:hover {
     padding: 8px 16px;
     margin-top: 10px;
     border-radius: 4px;
-    background-color: #4CAF50;
+    background-color: #FF5C00;
     color: white;
     font-size: 14px;
     cursor: pointer;
@@ -401,7 +405,7 @@ button:hover {
 }
 
 #projectForm button:hover {
-    background-color: #45a049;
+    background-color: #d85001;
 }
 
 #projectForm button[type="button"] {
@@ -415,7 +419,7 @@ button:hover {
 
 .project-title {
     font-size: 20px;
-    color: #555555;
+    color: #000000;
     margin-bottom: 10px;
 }
 
@@ -430,16 +434,17 @@ button:hover {
 
 .sideBarHeader {
     padding-bottom: 10px;
-    font-size: 15px;
+    font-size: 18px;
     color: #555555;
     margin-top: 10px;
+    margin-left: 10px;
 }
 
 .filter-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 5px 10px;
+    padding: 5px;
     margin-bottom: 5px;
     border-radius: 5px;
     cursor: pointer;
@@ -447,18 +452,20 @@ button:hover {
 }
 
 .filter-item span:first-child {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     flex-grow: 1; /* Allow the title to take up available space */
     text-align: left; /* Align the text to the left */
 }
 
 .filter-item .todo-count {
     margin-left: auto; /* Push the count to the far right */
-    background-color: #ddd;
     border-radius: 50%;
     padding: 2px 6px;
     font-size: 0.8em;
 }
 
 .filter-item:hover {
-    background-color: #d0d0d0;
+    color: rgba(0, 0, 0, 0.5)
 }

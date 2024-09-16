@@ -1,6 +1,6 @@
 import { Todo } from "./todo";
 import { Project } from "./projects";
-import { displayTodos, displayProjects } from "./tododisplay";
+import { displayTodos, displayProjects } from "./uiHelpers.js";
 
 export class mainContentDom {
     constructor() {
@@ -112,20 +112,6 @@ export class mainContentDom {
 
     initializeFilters() {
         const filtersContainer = document.querySelector('#filters');
-        filtersContainer.innerHTML = `
-            <div class="filter-item" id="showAllTodos">
-                <span>All</span>
-                <span class="todo-count" id="allTodosCount">0</span>
-            </div>
-            <div class="filter-item" id="showDueToday">
-                <span>Today</span>
-                <span class="todo-count" id="dueTodayCount">0</span>
-            </div>
-            <div class="filter-item" id="showCompleted">
-                <span>Completed</span>
-                <span class="todo-count" id="completedCount">0</span>
-            </div>
-        `;
         
         document.getElementById('showAllTodos').addEventListener('click', () => this.showAllTodos());
         document.getElementById('showDueToday').addEventListener('click', () => this.showDueToday());
@@ -135,25 +121,36 @@ export class mainContentDom {
     }
 
     updateFilterCounts() {
-        const allTodosCount = this.projects.reduce((sum, project) => sum + project.getTodos().length, 0);
         const today = new Date().toISOString().split('T')[0];
+        const allOpenTodosCount = this.projects.reduce((sum, project) => 
+            sum + project.getTodos().filter(todo => !todo.completed).length, 0);
         const dueTodayCount = this.projects.reduce((sum, project) => 
-            sum + project.getTodos().filter(todo => todo.dueDate === today).length, 0);
+            sum + project.getTodos().filter(todo => todo.dueDate === today && !todo.completed).length, 0);
         const completedCount = this.projects.reduce((sum, project) => 
             sum + project.getTodos().filter(todo => todo.completed).length, 0);
 
-        const allTodosElement = document.getElementById('allTodosCount');
-        const dueTodayElement = document.getElementById('dueTodayCount');
-        const completedElement = document.getElementById('completedCount');
+        document.getElementById('allTodosCount').textContent = allOpenTodosCount;
+        document.getElementById('dueTodayCount').textContent = dueTodayCount;
+        document.getElementById('completedCount').textContent = completedCount;
 
-        if (allTodosElement) allTodosElement.textContent = allTodosCount;
-        if (dueTodayElement) dueTodayElement.textContent = dueTodayCount;
-        if (completedElement) completedElement.textContent = completedCount;
+        // Update project counts
+        this.projects.forEach(project => {
+            const uncompletedCount = project.getTodos().filter(todo => !todo.completed).length;
+            const projectElement = document.querySelector(`.project-item[data-project="${project.name}"]`);
+            if (projectElement) {
+                const countElement = projectElement.querySelector('.todo-count');
+                if (countElement) {
+                    countElement.textContent = uncompletedCount;
+                }
+            }
+        });
     }
 
     showAllTodos() {
-        const allTodos = this.projects.flatMap(project => project.getTodos());
-        this.displayFilteredTodos(allTodos, 'All To-Dos');
+        const allTodos = this.projects.flatMap(project => 
+            project.getTodos().filter(todo => !todo.completed)
+        );
+        this.displayFilteredTodos(allTodos, 'All Open To-Dos');
     }
 
     showDueToday() {
@@ -168,20 +165,7 @@ export class mainContentDom {
         const completedTodos = this.projects.flatMap(project => 
             project.getTodos().filter(todo => todo.completed)
         );
-        displayTodos(
-            completedTodos,
-            'Completed Tasks',
-            null,
-            null,
-            null,
-            (index) => {
-                const [project, todoIndex] = this.findTodoProjectAndIndex(completedTodos[index]);
-                if (project) {
-                    this.toggleTodoCompleted(todoIndex, project);
-                }
-            },
-            true 
-        );
+        this.displayFilteredTodos(completedTodos, 'Completed Tasks', true);
     }
 
     findTodoProjectAndIndex(todo) {
@@ -194,15 +178,14 @@ export class mainContentDom {
         return [null, -1];
     }
 
-    displayFilteredTodos(todos, title) {
+    displayFilteredTodos(todos, title, showCompleted = false) {
         const container = document.querySelector(".mainContainer");
         container.innerHTML = `<h2 class="project-title">${title}</h2>`;
         
-        // Display todos first
+        // Display todos
         displayTodos(
             todos,
             title,
-            null,
             (index) => {
                 const [project, todoIndex] = this.findTodoProjectAndIndex(todos[index]);
                 if (project) {
@@ -219,26 +202,32 @@ export class mainContentDom {
                 const [project, todoIndex] = this.findTodoProjectAndIndex(todos[index]);
                 if (project) {
                     this.toggleTodoCompleted(todoIndex, project);
+                    // Remove the todo from the view if it's completed and we're not showing completed tasks
+                    if (!showCompleted) {
+                        todos.splice(index, 1);
+                        this.displayFilteredTodos(todos, title, showCompleted);
+                    }
                 }
             },
-            title === 'Completed Tasks'
+            showCompleted
         );
 
-        // Then add the "Add a new task" button
-        if (this.addTodoBtn) {
-            container.appendChild(this.addTodoBtn);
-        } else {
-            const addTaskBtn = document.createElement('button');
-            addTaskBtn.id = 'askForInput';
-            addTaskBtn.textContent = '+ Add a new task';
-            addTaskBtn.addEventListener('click', () => this.showInputForm());
-            container.appendChild(addTaskBtn);
-            this.addTodoBtn = addTaskBtn;
-        }
+        // Add the "Add a new task" button and input container only if not showing completed tasks
+        if (!showCompleted) {
+            if (this.addTodoBtn) {
+                container.appendChild(this.addTodoBtn);
+            } else {
+                const addTaskBtn = document.createElement('button');
+                addTaskBtn.id = 'askForInput';
+                addTaskBtn.textContent = '+ Add a new task';
+                addTaskBtn.addEventListener('click', () => this.showInputForm());
+                container.appendChild(addTaskBtn);
+                this.addTodoBtn = addTaskBtn;
+            }
 
-        // Finally, add the input container
-        if (this.inputContainer) {
-            container.appendChild(this.inputContainer);
+            if (this.inputContainer) {
+                container.appendChild(this.inputContainer);
+            }
         }
     }
 
@@ -365,19 +354,22 @@ export class mainContentDom {
     }
 
     updateToDos() {
+        console.log("Updating todos for project:", this.currentProject?.name);
         const container = document.querySelector(".mainContainer");
         if (this.currentProject) {
             try {
                 container.innerHTML = `<h2 class="project-title">${this.currentProject.name}</h2>`;
 
+                const todos = this.currentProject.getTodos();
+                console.log("Number of todos:", todos.length);
+
                 // Display todos first
                 displayTodos(
-                    this.currentProject.getTodos(),
+                    todos,
                     this.currentProject.name,
                     (index) => this.editTodo(index, this.currentProject),
                     (index) => this.deleteTodo(index, this.currentProject),
-                    (index) => this.toggleTodoCompleted(index, this.currentProject),
-                    false 
+                    (index) => this.toggleTodoCompleted(index, this.currentProject)
                 );
 
                 // Then add the "Add a new task" button
@@ -448,18 +440,26 @@ export class mainContentDom {
     }
 
     selectProject(project) {
+        console.log("Selecting project:", project.name);
         this.currentProject = project;
-        this.updateToDos();
-        this.saveToLocalStorage();
         
-        // Update the UI to reflect the selected project
-        this.updateProjectSelection();
+        // Use requestAnimationFrame for smoother UI updates
+        requestAnimationFrame(() => {
+            try {
+                this.updateToDos();
+                this.updateProjectSelection();
+                this.saveToLocalStorage();
+            } catch (error) {
+                console.error("Error in selectProject:", error);
+                alert("An error occurred while selecting the project. Please try again.");
+            }
+        });
     }
 
     updateProjectSelection() {
         const projectElements = document.querySelectorAll('.project-item');
         projectElements.forEach(element => {
-            if (element.textContent.trim() === this.currentProject.name) {
+            if (element.getAttribute('data-project') === this.currentProject.name) {
                 element.classList.add('selected');
             } else {
                 element.classList.remove('selected');
